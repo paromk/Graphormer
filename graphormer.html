@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probing State-Dependent Predictability of W. Coast AR Activity Using a Graph Transformer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Aptos, Calibri, 'Segoe UI', Arial, sans-serif;
+    background: #1a1a2e;
+    color: #1a1a1a;
+    line-height: 1.5;
+  }
+
+  .deck {
+    max-width: 960px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    padding: 1rem;
+  }
+
+  .slide {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── colour tokens ── */
+  :root {
+    --navy:  #10487a;   /* 0.0627 0.282 0.384 */
+    --green: #1a8d22;   /* 0.103 0.553 0.133 approx */
+    --teal:  #154e82;
+    --rust:  #ea7132;   /* 0.914 0.443 0.196 */
+    --purple:#6b1893;
+    --muted: #555;
+  }
+
+  /* ── slide header bar ── */
+  .slide-header {
+    background: #fff;
+    padding: 0.7rem 2rem 0.3rem;
+    border-bottom: 3px solid var(--navy);
+  }
+
+  .slide-title {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.2;
+  }
+
+  .slide-body {
+    flex: 1;
+    padding: 1.1rem 2rem;
+    overflow: hidden;
+  }
+
+  /* ── Slide 1 – title / workflow ── */
+  #slide1 .slide-header {
+    border-bottom: none;
+    padding-top: 1.2rem;
+    text-align: center;
+  }
+
+  #slide1 .slide-title {
+    font-size: 1.55rem;
+  }
+
+  #slide1 .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 0.8rem;
+    align-items: center;
+  }
+
+  .workflow-box {
+    background: #f4f8fb;
+    border: 2.5px solid var(--purple);
+    border-radius: 6px;
+    padding: 0.7rem;
+    font-size: 0.78rem;
+    color: #222;
+  }
+
+  .workflow-box h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .workflow-box ul {
+    padding-left: 1em;
+    color: var(--muted);
+    font-size: 0.76rem;
+  }
+
+  .workflow-box li { margin-bottom: 0.2rem; }
+
+  .workflow-pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .wf-step {
+    background: var(--navy);
+    color: #fff;
+    border-radius: 5px;
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+    width: 80%;
+  }
+
+  .wf-step.accent { background: var(--purple); }
+
+  .wf-arrow {
+    font-size: 1.1rem;
+    color: var(--navy);
+    line-height: 1;
+    margin: 1px 0;
+  }
+
+  .wf-annotation {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+    max-width: 80%;
+  }
+
+  .wf-repeat {
+    font-size: 0.65rem;
+    color: var(--navy);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .output-box {
+    background: #f4fbf4;
+    border: 2.5px solid #2a7a2a;
+    border-radius: 6px;
+    padding: 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .output-box h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #2a7a2a;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .output-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    color: #333;
+  }
+
+  .bullet-green { color: var(--green); font-size: 1rem; line-height: 1; }
+
+  .graph-panel {
+    font-size: 0.82rem;
+  }
+
+  .section-label {
+    font-weight: 700;
+    color: #7a3a00;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.2rem;
+  }
+
+  .graph-panel ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .graph-panel li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+    color: #222;
+  }
+
+  .graph-panel li .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--navy);
+    flex-shrink: 0;
+    margin-top: 0.42em;
+  }
+
+  em { font-style: italic; color: #444; }
+
+  .climate-tokens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+  }
+
+  .token {
+    background: #e8f0fb;
+    border: 1px solid #9ab5db;
+    border-radius: 3px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.72rem;
+    font-family: 'Courier New', monospace;
+    color: var(--navy);
+  }
+
+  .attention-note {
+    background: #fff8f0;
+    border-left: 3px solid var(--rust);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    color: #444;
+    border-radius: 0 4px 4px 0;
+    margin-top: 0.6rem;
+  }
+
+  /* ── Slide 2 – graph structure with figure ── */
+  #slide2 .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0.6rem 1rem;
+    align-items: start;
+    padding: 0.7rem 1.4rem 0.5rem;
+  }
+
+  #slide2 .slide-figure {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  #slide2 .slide-figure img {
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 4px;
+    border: 1px solid #dde;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* ── Slide 3 – analysis workflow ── */
+  #slide3 .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .analysis-col { font-size: 0.8rem; }
+
+  .analysis-col h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.4rem;
+    border-bottom: 1px solid #dde;
+    padding-bottom: 0.2rem;
+  }
+
+  .analysis-col ul { list-style: none; padding: 0; }
+
+  .analysis-col li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+    color: #222;
+  }
+
+  .analysis-col li .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--navy);
+    flex-shrink: 0;
+    margin-top: 0.45em;
+  }
+
+  .sub-item {
+    margin-left: 1.2rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+    display: flex;
+    gap: 0.3rem;
+    align-items: flex-start;
+  }
+
+  .arrow-right { color: var(--navy); flex-shrink: 0; }
+
+  .flow-box {
+    background: #f8f4fb;
+    border: 1.5px solid var(--rust);
+    border-radius: 5px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.78rem;
+    margin-top: 0.6rem;
+  }
+
+  .flow-box h5 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--rust);
+    margin-bottom: 0.35rem;
+  }
+
+  /* ── Slide 4 & 5 – references ── */
+  .refs-body { padding: 1.2rem 2rem; }
+
+  .ref-entry {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    font-size: 0.83rem;
+    color: #222;
+    align-items: flex-start;
+  }
+
+  .ref-bullet { color: var(--navy); font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05em; }
+
+  .ref-entry cite { font-style: italic; }
+
+  .ref-entry a {
+    color: var(--navy);
+    text-decoration: none;
+  }
+
+  /* ── Slide 4 – data ── */
+  #slide4 .slide-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.4rem;
+    align-items: start;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    text-align: left;
+    padding: 0.3rem 0.45rem;
+    border-bottom: 1px solid #dde;
+    vertical-align: top;
+  }
+
+  .data-table th {
+    color: var(--navy);
+    font-weight: 700;
+  }
+
+  .data-col { font-size: 0.78rem; color: #222; }
+
+  .data-col h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.4rem;
+    border-bottom: 1px solid #dde;
+    padding-bottom: 0.2rem;
+  }
+
+  .data-col h4:not(:first-child) { margin-top: 0.9rem; }
+
+  .data-col ul { list-style: none; padding: 0; }
+
+  .data-col li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .data-col li .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--navy);
+    flex-shrink: 0;
+    margin-top: 0.45em;
+  }
+
+  .data-note {
+    font-size: 0.7rem;
+    font-style: italic;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* ── nav ── */
+  .slide-num {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    color: #aaa;
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 – Title / Workflow Overview
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="slide1">
+    <div class="slide-header">
+      <div class="slide-title">
+        Probing State-Dependent Predictability of W. Coast AR Activity<br>
+        Using a Graph Transformer
+      </div>
+    </div>
+    <div class="slide-body">
+
+      <!-- Input box -->
+      <div class="workflow-box">
+        <h4>Input Graph</h4>
+        <ul>
+          <li>Features on mesh nodes</li>
+          <li>Coastal nodes</li>
+          <li>Climate mode indices</li>
+          <li>at t = &minus;i, &hellip;, 0 (in weeks)</li>
+        </ul>
+        <div style="margin-top:0.6rem; font-size:0.72rem; font-style:italic; color:var(--muted);">
+          Initial attention bias by<br>locality / correlations
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="workflow-pipeline">
+        <div class="wf-step">Embedding MLP</div>
+        <div class="wf-arrow">&#8595;</div>
+        <div class="wf-step accent">Biased Multi-Head<br>Attention Block</div>
+        <div class="wf-arrow">&#8595;</div>
+        <div class="wf-step">Feed-Forward Layer</div>
+        <div class="wf-arrow">&#8595;</div>
+        <div class="wf-annotation wf-repeat">&times;3</div>
+        <div class="wf-arrow">&#8595;</div>
+        <div class="wf-step accent">Attention Readout</div>
+      </div>
+
+      <!-- Output box -->
+      <div class="output-box">
+        <h4>Output (Weeks 1–4)</h4>
+        <div class="output-item">
+          <span class="bullet-green">&#8226;</span>
+          <span><strong>AR frequency anomaly terciles</strong><br>
+          (above / near / below normal)<br>on coastal nodes</span>
+        </div>
+        <div class="output-item">
+          <span class="bullet-green">&#8226;</span>
+          <span>Z500 regime in the N. Pacific</span>
+        </div>
+        <div class="output-item">
+          <span class="bullet-green">&#8226;</span>
+          <span>Calibrated confidence of predictions</span>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">1 / 5</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 – Graph Structure
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="slide2">
+    <div class="slide-header">
+      <div class="slide-title">Graph Structure</div>
+    </div>
+    <div class="slide-body">
+
+      <div class="graph-panel">
+        <div class="section-label">Node structure</div>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            <span><strong>~60 nodes</strong> representing <em>mesh nodes</em> relevant to the N. Pacific
+            + <em>coastal nodes</em> + <em>climate modes tokens</em></span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span>Each mesh/coastal node has features — regionally and
+            7-day averaged: <code>Z500</code>, <code>IVT_x</code>, <code>IVT_y</code>,
+            + tendencies, etc.</span>
+          </li>
+        </ul>
+
+        <div style="margin-top:1rem;">
+          <div class="section-label">Global state nodes</div>
+          <div class="climate-tokens">
+            <span class="token">RMM1</span><span class="token">RMM2</span>
+            <span class="token">QBO</span><span class="token">ENSO</span>
+            <span class="token">AO</span><span class="token">PDO</span>
+            <span class="token">IOD</span><span class="token">PNA</span>
+            <span class="token">NPO</span><span class="token">DOY</span>
+            <span class="token">Lag</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="graph-panel">
+        <div class="section-label">Edges</div>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            <strong>Fully connected</strong>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span>Attention patterns inform <em>strength of node–node interaction</em>
+            given different contexts</span>
+          </li>
+        </ul>
+        <div class="attention-note">
+          Example: in a high-ENSO / active-MJO state, attention weights from tropical
+          and ENSO tokens to coastal nodes are expected to strengthen, capturing
+          teleconnection pathways.
+        </div>
+      </div>
+
+      <!-- Figure from slide 2 of the PDF -->
+      <div class="slide-figure">
+        <img src="slide2_figure.png" alt="Graph structure diagram showing mesh, coastal, and climate-mode nodes over the North Pacific">
+      </div>
+    </div>
+    <div class="slide-num">2 / 5</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 – Analysis Workflow
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="slide3">
+    <div class="slide-header">
+      <div class="slide-title">Analysis to Probe State-Dependent Predictability</div>
+    </div>
+    <div class="slide-body">
+
+      <div class="analysis-col">
+        <h4>Saved inference on eval data (held-out winters)</h4>
+        <ul>
+          <li><span class="dot"></span>Forecasts</li>
+          <li><span class="dot"></span>Confidence scores</li>
+          <li><span class="dot"></span>Attention matrices</li>
+          <li><span class="dot"></span>Gradients</li>
+        </ul>
+
+        <div style="margin-top:0.8rem;">
+          <h4>Partition strategies</h4>
+          <ul>
+            <li>
+              <span class="dot"></span>
+              <span><strong>Global states</strong> — e.g. MJO &times; ENSO, MJO &times; PDO</span>
+            </li>
+            <li>
+              <span class="dot"></span>
+              <span><strong>Confidence levels</strong></span>
+            </li>
+          </ul>
+          <div class="sub-item">
+            <span class="arrow-right">&#8594;</span>
+            Conditional skill &amp; regional variability
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-col">
+        <h4>Layer-wise attention composites</h4>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            Identifies <em>source nodes</em> for a given prediction, lag, and/or partition
+          </li>
+          <li>
+            <span class="dot"></span>
+            Probes significant attention weights along edges from tropics, ENSO, RMM
+            tokens, etc. to coastal nodes
+          </li>
+        </ul>
+
+        <div class="flow-box">
+          <h5>Causal attribution (model)</h5>
+          <ul style="list-style:none; padding:0;">
+            <li style="margin-bottom:0.3rem; display:flex; gap:0.3rem;">
+              <span style="color:var(--rust);">&#8226;</span>
+              <span><strong>Gradients</strong> — sensitivity maps for relative impact
+              of information sources</span>
+            </li>
+            <li style="display:flex; gap:0.3rem;">
+              <span style="color:var(--rust);">&#8226;</span>
+              <span><strong>Ablation studies</strong> — remove regions / climate modes,
+              retrain, quantify skill loss</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="slide-num">3 / 5</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 – Data
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="slide4">
+    <div class="slide-header">
+      <div class="slide-title">Data: CESM2-LENS2 Historical Ensemble (1920–2014)</div>
+    </div>
+    <div class="slide-body">
+
+      <div class="data-col">
+        <h4>Experiments</h4>
+        <table class="data-table">
+          <tr>
+            <th>Folder</th>
+            <th>Forcing</th>
+            <th>Size</th>
+            <th>Members</th>
+          </tr>
+          <tr>
+            <td><code>BHISTcmip6</code></td>
+            <td>CMIP6 forcing</td>
+            <td>~66 TB</td>
+            <td>50</td>
+          </tr>
+          <tr>
+            <td><code>BHISTsmbb</code></td>
+            <td>Smoothed biomass-burning forcing</td>
+            <td>~19 TB</td>
+            <td>50</td>
+          </tr>
+        </table>
+
+        <h4>Member layout (same in both experiments)</h4>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            <span><strong>10 single members</strong>: LE2-1001 to LE2-1181 (cmip6),
+            LE2-1011 to LE2-1191 (smbb)</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span><strong>4 groups of 10 members</strong>: LE2-1231, 1251, 1281, 1301</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span>Folder pattern: <code>b.e21.&lt;exp&gt;.f09_g17.LE2-&lt;id&gt;.&lt;nnn&gt;</code></span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="data-col">
+        <h4>Variables per member (one file per decade)</h4>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            <span><code>FLUT</code> (OLR proxy), <code>PS</code>, <code>TS</code>, <code>Z500</code></span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span><code>U</code>, <code>V</code>, <code>Q</code> on model levels;
+            <code>U_plev</code>, <code>V_plev</code>, <code>Q_plev</code> on pressure levels</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span><code>U200</code>, <code>V200</code>, <code>U850</code></span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span>No IVT stored; compute from <code>U</code>, <code>V</code>, <code>Q</code></span>
+          </li>
+        </ul>
+        <div class="data-note">
+          cam.h1 (likely daily) and cam.h6 (likely sub-daily) frequencies are not yet verified.
+        </div>
+
+        <h4>Helper folders</h4>
+        <ul>
+          <li>
+            <span class="dot"></span>
+            <span><code>Codes_for_RMM/</code>: MJO RMM EOF and anomaly scripts</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span><code>YYYYMMDD_for_RMM_indices/</code>: calendar lookup files</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span><code>RMM_pattern_correlations/</code>: FLUT pattern-correlation tables</span>
+          </li>
+          <li>
+            <span class="dot"></span>
+            <span>MJO FLUT composite files (summer and winter, 100-member mean)</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-num">4 / 5</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 5 – References
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="slide5">
+    <div class="slide-header">
+      <div class="slide-title">Relevant References</div>
+    </div>
+    <div class="refs-body">
+      <div class="ref-entry">
+        <span class="ref-bullet">&#8226;</span>
+        <span>
+          Li, P., Yu, Y., Huang, D., Wang, Z.H. and Sharma, A., 2023.
+          Regional heatwave prediction using graph neural network and weather station data.
+          <cite>Geophysical Research Letters</cite>, <strong>50</strong>(7), p.e2023GL103405.
+        </span>
+      </div>
+      <div class="ref-entry">
+        <span class="ref-bullet">&#8226;</span>
+        <span>
+          Prapas, I., Papadopoulos, N., Bountos, N.I., Michail, D.,
+          Camps-Valls, G. and Papoutsis, I., 2026.
+          TeleViT 1.0: teleconnection-informed vision transformers for subseasonal
+          to seasonal wildfire pattern forecasts.
+          <cite>Machine Learning: Earth</cite>, <strong>2</strong>(1), p.015019.
+        </span>
+      </div>
+    </div>
+    <div class="slide-num">5 / 5</div>
+  </div>
+
+</div>
+</body>
+</html>
